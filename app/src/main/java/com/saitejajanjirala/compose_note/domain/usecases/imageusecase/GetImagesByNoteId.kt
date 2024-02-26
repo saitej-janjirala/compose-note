@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.Flow
 
 class GetImagesByNoteId constructor(private val repository: ImageRepository)
 {
-    fun invoke(noteId : Int): Flow<List<ImageModel>> {
+    suspend fun invoke(noteId : Int): Flow<List<ImageModel>> {
         return repository.getAllImagesByNoteId(noteId)
     }
 }

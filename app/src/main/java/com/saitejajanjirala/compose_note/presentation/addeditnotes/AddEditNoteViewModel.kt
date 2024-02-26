@@ -8,22 +8,22 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.saitejajanjirala.compose_note.domain.models.InvalidNoteException
 import com.saitejajanjirala.compose_note.domain.models.Note
+import com.saitejajanjirala.compose_note.domain.usecases.imageusecase.ImageUseCases
 import com.saitejajanjirala.compose_note.domain.usecases.noteusecase.NoteUseCases
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import java.util.UUID
 import javax.inject.Inject
-import kotlin.system.measureTimeMillis
 
 @HiltViewModel
 class AddEditNoteViewModel
     @Inject constructor(
     val noteUseCases: NoteUseCases,
+    val imageUseCases: ImageUseCases,
     val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -41,10 +41,11 @@ class AddEditNoteViewModel
             hint = "Enter the description here"
         )
     )
+
     val noteDescription : State<TextFieldState>
         get() = _noteDescription
 
-    private var currentNoteId : Int? = null
+    var currentNoteId : Int? = null
 
     private  val _eventFlow = MutableSharedFlow<UiEvent>()
 
@@ -52,11 +53,18 @@ class AddEditNoteViewModel
         get() = _eventFlow
 
 
+    private var _noteImagesState= mutableStateOf(
+        NoteImagesState()
+    )
+
+    val noteImagesState : State<NoteImagesState>
+        get() = _noteImagesState
     fun fetchNoteData(){
         savedStateHandle.get<Int>("note_id")?.let {noteId->
             viewModelScope.launch(Dispatchers.IO) {
                 noteUseCases.getNoteById.invoke(noteId)?.also{note->
                     currentNoteId = note.noteId
+                    fetchNoteImages(currentNoteId!!)
                     _noteTitle.value = noteTitle.value.copy(
                         text = note.title,
                         isHintVisible = false,
@@ -67,6 +75,17 @@ class AddEditNoteViewModel
                     )
                 }
             }
+        }
+    }
+
+    private fun fetchNoteImages(noteId : Int){
+        viewModelScope.launch (Dispatchers.IO){
+           imageUseCases.getImagesByNoteId.invoke(noteId).collectLatest {
+               _noteImagesState.value = noteImagesState.value.copy(
+                   images = it
+               )
+           }
+
         }
     }
     fun onEvent(notesEvent: AddEditNotesEvent){
@@ -104,6 +123,22 @@ class AddEditNoteViewModel
                     }catch (e : InvalidNoteException){
                         _eventFlow.emit(UiEvent.ShowSnackBar(e.message.toString()))
                     }
+                }
+            }
+        }
+    }
+
+    fun onImageEvent(imageEvent: ImageEvent){
+        when(imageEvent){
+            is ImageEvent.AddImage ->{
+                viewModelScope.launch (Dispatchers.IO){
+                    imageEvent.imageModel.note_Id = currentNoteId
+                    imageUseCases.addImage.invoke(imageEvent.imageModel)
+                }
+            }
+            is ImageEvent.DeleteImage -> {
+                viewModelScope.launch (Dispatchers.IO){
+                    imageUseCases.deleteImage.invoke(imageEvent.imageModel)
                 }
             }
         }

@@ -1,33 +1,40 @@
 package com.saitejajanjirala.compose_note.presentation
 
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.saitejajanjirala.compose_note.domain.models.ImageModel
+import com.saitejajanjirala.compose_note.domain.usecases.imageusecase.ImageUseCases
 import com.saitejajanjirala.compose_note.domain.usecases.noteusecase.NoteUseCases
 import com.saitejajanjirala.compose_note.domain.util.NoteOrder
 import com.saitejajanjirala.compose_note.domain.util.OrderType
 import com.saitejajanjirala.compose_note.presentation.notes.NotesEvent
 import com.saitejajanjirala.compose_note.presentation.notes.NotesState
-import dagger.hilt.android.HiltAndroidApp
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 
 @HiltViewModel
-class MainViewModel @Inject constructor(val noteUseCases: NoteUseCases) : ViewModel() {
+class MainViewModel @Inject constructor(
+    val noteUseCases: NoteUseCases,
+    val imageUseCases: ImageUseCases
+) : ViewModel() {
     private val _notesState = mutableStateOf(NotesState())
     val notesState : State<NotesState>
         get() = _notesState
     private var notesJob : Job? = null
+
+    private var _eventFlow = MutableSharedFlow<ImageUiEvent>()
+    val eventFlow : SharedFlow<ImageUiEvent>
+        get() = _eventFlow
     init {
         fetchNotesByOrderType(NoteOrder.Date(OrderType.DESCENDING))
     }
@@ -67,4 +74,15 @@ class MainViewModel @Inject constructor(val noteUseCases: NoteUseCases) : ViewMo
             }
         }
     }
+
+    fun onNewImage(imageModel : ImageModel){
+        viewModelScope.launch {
+            _eventFlow.emit(
+                ImageUiEvent.OnNewImage(imageModel)
+            )
+        }
+    }
+}
+sealed class ImageUiEvent{
+    class OnNewImage(val imageModel: ImageModel):ImageUiEvent()
 }

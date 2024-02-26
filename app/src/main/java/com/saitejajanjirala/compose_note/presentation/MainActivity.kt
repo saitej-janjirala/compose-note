@@ -6,6 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -30,7 +31,8 @@ import java.util.UUID
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
-    val imageLauncher = registerForActivityResult(ActivityResultContracts.PickVisualMedia()){uri->
+    private val viewModel : MainViewModel by viewModels()
+    private val imageLauncher = registerForActivityResult(ActivityResultContracts.PickVisualMedia()){ uri->
 
         uri?.let {imageUri->
             CoroutineScope(Dispatchers.IO).launch {
@@ -43,7 +45,7 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                     newImage?.let {
-
+                        viewModel.onNewImage(it)
                     }
                 }catch (e:Exception){
                     e.printStackTrace()
@@ -78,7 +80,7 @@ class MainActivity : ComponentActivity() {
                                 }
                             ),
                         ){
-                            AddEditNoteScreen(navController, onAttach = {
+                            AddEditNoteScreen(navController, mainViewModel = viewModel, onAttach = {
                                 pickImages()
                             })
                         }

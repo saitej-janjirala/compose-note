@@ -1,6 +1,7 @@
 package com.saitejajanjirala.compose_note.presentation.addeditnotes
 
 import androidx.compose.ui.focus.FocusState
+import com.saitejajanjirala.compose_note.domain.models.ImageModel
 
 sealed class AddEditNotesEvent {
     data class OnTitleEntered(val text : String) : AddEditNotesEvent()

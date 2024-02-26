@@ -16,6 +16,6 @@ interface ImageDao {
     @Delete
     fun delete(imageModel: ImageModel)
 
-    @Query("SELECT * from images WHERE noteId=:noteId")
+    @Query("SELECT * from images WHERE note_Id=:noteId")
     fun getAllImagesByNoteId(noteId : Int): Flow<List<ImageModel>>
 }
