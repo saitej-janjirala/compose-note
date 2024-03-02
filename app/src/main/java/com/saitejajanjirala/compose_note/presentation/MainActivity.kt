@@ -17,6 +17,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.saitejajanjirala.compose_note.domain.converters.Converters
 import com.saitejajanjirala.compose_note.domain.models.ImageModel
 import com.saitejajanjirala.compose_note.presentation.addeditnotes.component.AddEditNoteScreen
 import com.saitejajanjirala.compose_note.presentation.notes.component.NotesScreen
@@ -32,27 +33,6 @@ import java.util.UUID
 class MainActivity : ComponentActivity() {
 
     private val viewModel : MainViewModel by viewModels()
-    private val imageLauncher = registerForActivityResult(ActivityResultContracts.PickVisualMedia()){ uri->
-
-        uri?.let {imageUri->
-            CoroutineScope(Dispatchers.IO).launch {
-                try {
-                    val newImage = contentResolver.openInputStream(imageUri)?.readBytes()?.let {
-                        ImageModel(
-                            null,
-                            null,
-                            it
-                        )
-                    }
-                    newImage?.let {
-                        viewModel.onNewImage(it)
-                    }
-                }catch (e:Exception){
-                    e.printStackTrace()
-                }
-            }
-        }
-    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -80,9 +60,7 @@ class MainActivity : ComponentActivity() {
                                 }
                             ),
                         ){
-                            AddEditNoteScreen(navController, mainViewModel = viewModel, onAttach = {
-                                pickImages()
-                            })
+                            AddEditNoteScreen(navController = navController)
                         }
                     }
                 }
@@ -90,9 +68,5 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun pickImages(){
-        imageLauncher.launch(
-            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-        )
-    }
+
 }

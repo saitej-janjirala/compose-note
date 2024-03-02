@@ -1,9 +1,11 @@
 package com.saitejajanjirala.compose_note.domain.models
 
+import android.net.Uri
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.ForeignKey.Companion.CASCADE
+import androidx.room.Ignore
 import androidx.room.PrimaryKey
 
 @Entity(
@@ -18,27 +20,10 @@ import androidx.room.PrimaryKey
 data class ImageModel(
     @PrimaryKey(autoGenerate = true)
     val id: Int?=-1,
-    var note_Id: Int?=-1 ,
-    @ColumnInfo(name = "image_data", typeAffinity = ColumnInfo.BLOB)
-    val imageData : ByteArray
+    var note_Id: Int?=-1,
+    var imageUri : Uri?
 ){
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
 
-        other as ImageModel
-
-        if (id != other.id) return false
-        if (note_Id != other.note_Id) return false
-        return imageData.contentEquals(other.imageData)
-    }
-
-    override fun hashCode(): Int {
-        var result = id ?: 0
-        result = 31 * result + (note_Id ?: 0)
-        result = 31 * result + imageData.contentHashCode()
-        return result
-    }
 
 }
 

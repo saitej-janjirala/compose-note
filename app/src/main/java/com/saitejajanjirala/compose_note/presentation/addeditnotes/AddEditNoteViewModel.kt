@@ -1,33 +1,40 @@
 package com.saitejajanjirala.compose_note.presentation.addeditnotes
 
-import android.util.Log
+import android.app.Application
+import android.net.Uri
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.saitejajanjirala.compose_note.domain.models.InvalidNoteException
 import com.saitejajanjirala.compose_note.domain.models.Note
-import com.saitejajanjirala.compose_note.domain.usecases.imageusecase.ImageUseCases
+import com.saitejajanjirala.compose_note.domain.usecases.imageusecase.SaveImagesUseCase
 import com.saitejajanjirala.compose_note.domain.usecases.noteusecase.NoteUseCases
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import java.util.Collections
+import java.util.Date
 import javax.inject.Inject
+import kotlin.random.Random
 
 @HiltViewModel
 class AddEditNoteViewModel
     @Inject constructor(
-    val noteUseCases: NoteUseCases,
-    val imageUseCases: ImageUseCases,
-    val savedStateHandle: SavedStateHandle
-) : ViewModel() {
+        private val noteUseCases: NoteUseCases,
+        private val application: Application,
+        private val savedStateHandle: SavedStateHandle
+) : AndroidViewModel(application) {
 
-    private var _noteTitle = mutableStateOf(
+
+    var _noteTitle = mutableStateOf(
         TextFieldState(
             hint = "Enter the title here"
         )
@@ -53,18 +60,20 @@ class AddEditNoteViewModel
         get() = _eventFlow
 
 
-    private var _noteImagesState= mutableStateOf(
-        NoteImagesState()
-    )
-
-    val noteImagesState : State<NoteImagesState>
+    private val _noteImagesState = mutableStateListOf<Uri>()
+    val noteImagesState: SnapshotStateList<Uri>
         get() = _noteImagesState
+
+
+
     fun fetchNoteData(){
         savedStateHandle.get<Int>("note_id")?.let {noteId->
             viewModelScope.launch(Dispatchers.IO) {
                 noteUseCases.getNoteById.invoke(noteId)?.also{note->
                     currentNoteId = note.noteId
-                    fetchNoteImages(currentNoteId!!)
+                    _noteImagesState.apply {
+                        addAll(note.images)
+                    }
                     _noteTitle.value = noteTitle.value.copy(
                         text = note.title,
                         isHintVisible = false,
@@ -78,16 +87,7 @@ class AddEditNoteViewModel
         }
     }
 
-    private fun fetchNoteImages(noteId : Int){
-        viewModelScope.launch (Dispatchers.IO){
-           imageUseCases.getImagesByNoteId.invoke(noteId).collectLatest {
-               _noteImagesState.value = noteImagesState.value.copy(
-                   images = it
-               )
-           }
 
-        }
-    }
     fun onEvent(notesEvent: AddEditNotesEvent){
         when(notesEvent){
             is AddEditNotesEvent.OnDescriptionEntered ->{
@@ -113,12 +113,24 @@ class AddEditNoteViewModel
             AddEditNotesEvent.OnSaveNote -> {
                 viewModelScope.launch(Dispatchers.IO) {
                     try{
-                        noteUseCases.addNote.invoke(Note(
+                        val im = noteImagesState
+                        val note = Note(
                             noteId = currentNoteId,
                             title = noteTitle.value.text,
                             description = noteDescription.value.text,
-                            timeStamp = System.currentTimeMillis()
-                        ))
+                            timeStamp = System.currentTimeMillis(),
+                        )
+                       val id =  noteUseCases.addNote.invoke(note).toInt()
+                        if(im.isNotEmpty()){
+
+                            noteUseCases.updateNote.invoke(
+                                note.copy(
+                                    noteId = id,
+                                    images =im,
+                                    timeStamp = System.currentTimeMillis()
+                                )
+                            )
+                        }
                         _eventFlow.emit(UiEvent.SaveNote)
                     }catch (e : InvalidNoteException){
                         _eventFlow.emit(UiEvent.ShowSnackBar(e.message.toString()))
@@ -131,18 +143,25 @@ class AddEditNoteViewModel
     fun onImageEvent(imageEvent: ImageEvent){
         when(imageEvent){
             is ImageEvent.AddImage ->{
-                viewModelScope.launch (Dispatchers.IO){
-                    imageEvent.imageModel.note_Id = currentNoteId
-                    imageUseCases.addImage.invoke(imageEvent.imageModel)
-                }
+               viewModelScope.launch (Dispatchers.IO) {
+                    val uri = SaveImagesUseCase.imageFileUri(
+                        application.applicationContext,
+                        imageEvent.uri,
+                        System.currentTimeMillis().toInt(),
+                        _noteImagesState.size
+                    )
+                   if (uri != null) {
+                       _noteImagesState.add(uri)
+                   }
+               }
             }
             is ImageEvent.DeleteImage -> {
-                viewModelScope.launch (Dispatchers.IO){
-                    imageUseCases.deleteImage.invoke(imageEvent.imageModel)
-                }
+                _noteImagesState.remove(imageEvent.uri)
             }
         }
     }
+
+
 
 }
 

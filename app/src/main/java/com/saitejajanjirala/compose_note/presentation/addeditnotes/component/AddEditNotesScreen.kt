@@ -1,10 +1,19 @@
 package com.saitejajanjirala.compose_note.presentation.addeditnotes.component
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -20,14 +29,23 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.saitejajanjirala.compose_note.R
+import com.saitejajanjirala.compose_note.domain.models.ImageModel
 import com.saitejajanjirala.compose_note.presentation.ImageUiEvent
 import com.saitejajanjirala.compose_note.presentation.MainViewModel
 import com.saitejajanjirala.compose_note.presentation.addeditnotes.AddEditNoteViewModel
@@ -40,16 +58,17 @@ import com.saitejajanjirala.compose_note.presentation.addeditnotes.UiEvent
 fun AddEditNoteScreen(
     navController: NavHostController,
     viewModel: AddEditNoteViewModel = hiltViewModel(),
-    mainViewModel: MainViewModel,
-    onAttach : ()->Unit
     ) {
+
+
 
     val titleState = viewModel.noteTitle.value
     val descriptionState = viewModel.noteDescription.value
-    val noteImagesState = viewModel.noteImagesState.value
+    val noteImagesState = viewModel.noteImagesState
     val scaffoldState = remember {
         SnackbarHostState()
     }
+
     val focusManager = LocalFocusManager.current
 
     LaunchedEffect(key1 = true){
@@ -67,16 +86,26 @@ fun AddEditNoteScreen(
         }
     }
 
-    LaunchedEffect(key1 = true){
-        mainViewModel.eventFlow.collect{
-            focusManager.clearFocus()
-            when(it){
-                is ImageUiEvent.OnNewImage ->{
-                    viewModel.onImageEvent(ImageEvent.AddImage(it.imageModel))
-                }
+//    LaunchedEffect(key1 = true){
+//        mainViewModel.eventFlow.collect{
+//            focusManager.clearFocus()
+//            when(it){
+//                is ImageUiEvent.OnNewImage ->{
+//                    viewModel.onImageEvent(ImageEvent.AddImage(it.imageModel))
+//                }
+//            }
+//        }
+//    }
+
+    val imageLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+        onResult = { uri->
+            uri?.let {
+                viewModel.onImageEvent(ImageEvent.AddImage(it))
+
             }
         }
-    }
+    )
 
     Scaffold(
         snackbarHost = {
@@ -106,13 +135,15 @@ fun AddEditNoteScreen(
                     }
                 },
                 actions = {
-                    if(viewModel.currentNoteId!=null) {
-                        IconButton(onClick = onAttach) {
-                            Icon(
-                                painterResource(id = R.drawable.ic_file_attach),
-                                contentDescription = "Attach Images"
-                            )
-                        }
+                    IconButton(onClick = {
+                        imageLauncher.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        )
+                    }) {
+                        Icon(
+                            painterResource(id = R.drawable.ic_file_attach),
+                            contentDescription = "Attach Images"
+                        )
                     }
                     IconButton(onClick = {
                         viewModel.onEvent(AddEditNotesEvent.OnSaveNote)
@@ -130,6 +161,7 @@ fun AddEditNoteScreen(
           modifier = Modifier.padding(it)
         ){
             Column {
+
                 TransparentTextField(
                     isHintVisible = titleState.isHintVisible,
                     onFocusChange = {focusState->
@@ -140,8 +172,23 @@ fun AddEditNoteScreen(
                     },
                     hint = titleState.hint,
                     text = titleState.text,
-                    textStyle =MaterialTheme.typography.headlineSmall
+                    textStyle = MaterialTheme.typography.headlineSmall.copy(
+                        fontWeight = FontWeight.Bold
+                    )
                 )
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(8.dp),
+                ){
+
+                    items(noteImagesState){data->
+                        NoteImage(onDeleteClick = {uri->
+                            viewModel.onImageEvent(ImageEvent.DeleteImage(uri))
+                        }, uri = data)
+                    }
+
+                }
                 TransparentTextField(
                     isHintVisible = descriptionState.isHintVisible,
                     onFocusChange = {focusState->
@@ -152,18 +199,10 @@ fun AddEditNoteScreen(
                     },
                     hint = descriptionState.hint,
                     text = descriptionState.text,
-                    textStyle = MaterialTheme.typography.bodyMedium
+                    textStyle = MaterialTheme.typography.bodyLarge
                 )
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth()
-                ){
-                    items(noteImagesState.images){
-                        NoteImage(onDeleteClick = {imageModel->
-                            viewModel.onImageEvent(ImageEvent.DeleteImage(imageModel))
-                        }, imageModel = it)
-                    }
-                }
             }
+
 
         }
 
@@ -171,6 +210,5 @@ fun AddEditNoteScreen(
 
 
 
-
-
 }
+

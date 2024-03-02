@@ -5,7 +5,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.saitejajanjirala.compose_note.domain.models.ImageModel
-import com.saitejajanjirala.compose_note.domain.usecases.imageusecase.ImageUseCases
 import com.saitejajanjirala.compose_note.domain.usecases.noteusecase.NoteUseCases
 import com.saitejajanjirala.compose_note.domain.util.NoteOrder
 import com.saitejajanjirala.compose_note.domain.util.OrderType
@@ -24,8 +23,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
-    val noteUseCases: NoteUseCases,
-    val imageUseCases: ImageUseCases
+    val noteUseCases: NoteUseCases
 ) : ViewModel() {
     private val _notesState = mutableStateOf(NotesState())
     val notesState : State<NotesState>

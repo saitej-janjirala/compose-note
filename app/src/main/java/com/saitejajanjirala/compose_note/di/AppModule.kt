@@ -1,6 +1,7 @@
 package com.saitejajanjirala.compose_note.di
 
 import android.app.Application
+import android.content.Context
 import androidx.room.Room
 import com.saitejajanjirala.compose_note.data.db.NotesDatabase
 import com.saitejajanjirala.compose_note.data.db.ImageDao
@@ -9,10 +10,6 @@ import com.saitejajanjirala.compose_note.data.repository.ImageRepositoryImpl
 import com.saitejajanjirala.compose_note.data.repository.NotesRepositoryImpl
 import com.saitejajanjirala.compose_note.domain.repository.ImageRepository
 import com.saitejajanjirala.compose_note.domain.repository.NotesRepository
-import com.saitejajanjirala.compose_note.domain.usecases.imageusecase.AddImage
-import com.saitejajanjirala.compose_note.domain.usecases.imageusecase.DeleteImage
-import com.saitejajanjirala.compose_note.domain.usecases.imageusecase.GetImagesByNoteId
-import com.saitejajanjirala.compose_note.domain.usecases.imageusecase.ImageUseCases
 import com.saitejajanjirala.compose_note.domain.usecases.noteusecase.AddNote
 import com.saitejajanjirala.compose_note.domain.usecases.noteusecase.DeleteNote
 import com.saitejajanjirala.compose_note.domain.usecases.noteusecase.GetAllNotes
@@ -22,6 +19,7 @@ import com.saitejajanjirala.compose_note.domain.usecases.noteusecase.UpdateNote
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
@@ -32,7 +30,10 @@ object AppModule {
     @Provides
     @Singleton
     fun providesDatabase(application: Application) : NotesDatabase{
-        return Room.databaseBuilder(application,NotesDatabase::class.java,NotesDatabase.DB_NAME).build()
+        return Room
+            .databaseBuilder(application,NotesDatabase::class.java,NotesDatabase.DB_NAME)
+            .fallbackToDestructiveMigration()
+            .build()
     }
 
     @Provides
@@ -72,12 +73,9 @@ object AppModule {
     }
 
     @Provides
-    @Singleton
-    fun provideImageUseCases(imageRepository: ImageRepository):ImageUseCases{
-        return ImageUseCases(
-            addImage = AddImage(imageRepository),
-            deleteImage = DeleteImage(imageRepository),
-            getImagesByNoteId = GetImagesByNoteId(imageRepository)
-        )
+    fun provideContext(@ApplicationContext context: Context): Context {
+        return context
     }
+
+
 }

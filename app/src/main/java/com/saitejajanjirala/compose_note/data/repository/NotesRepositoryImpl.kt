@@ -11,8 +11,8 @@ class NotesRepositoryImpl @Inject constructor(val noteDao: NoteDao) : NotesRepos
         return noteDao.getAllNotes()
     }
 
-    override suspend fun insertNote(note: Note) {
-        noteDao.insertNote(note)
+    override suspend fun insertNote(note: Note): Long {
+        return noteDao.insertNote(note)
     }
 
     override suspend fun deleteNote(note: Note) {
