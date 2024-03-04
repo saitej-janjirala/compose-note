@@ -1,6 +1,5 @@
 package com.saitejajanjirala.compose_note.presentation.addeditnotes.component
 
-import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -11,9 +10,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -23,31 +19,24 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.saitejajanjirala.compose_note.R
-import com.saitejajanjirala.compose_note.domain.models.ImageModel
-import com.saitejajanjirala.compose_note.presentation.ImageUiEvent
-import com.saitejajanjirala.compose_note.presentation.MainViewModel
 import com.saitejajanjirala.compose_note.presentation.addeditnotes.AddEditNoteViewModel
 import com.saitejajanjirala.compose_note.presentation.addeditnotes.AddEditNotesEvent
 import com.saitejajanjirala.compose_note.presentation.addeditnotes.ImageEvent
@@ -68,6 +57,10 @@ fun AddEditNoteScreen(
     val scaffoldState = remember {
         SnackbarHostState()
     }
+    val dialogState = remember{
+        mutableStateOf(false)
+    }
+
 
     val focusManager = LocalFocusManager.current
 
@@ -77,7 +70,10 @@ fun AddEditNoteScreen(
             focusManager.clearFocus()
             when(it){
                 UiEvent.SaveNote ->{
-                    navController.navigateUp()
+                    scaffoldState.showSnackbar(
+                        message = "Note Saved",
+                        duration = SnackbarDuration.Short
+                    )
                 }
                 is UiEvent.ShowSnackBar -> {
                     scaffoldState.showSnackbar(it.msg)
@@ -85,17 +81,6 @@ fun AddEditNoteScreen(
             }
         }
     }
-
-//    LaunchedEffect(key1 = true){
-//        mainViewModel.eventFlow.collect{
-//            focusManager.clearFocus()
-//            when(it){
-//                is ImageUiEvent.OnNewImage ->{
-//                    viewModel.onImageEvent(ImageEvent.AddImage(it.imageModel))
-//                }
-//            }
-//        }
-//    }
 
     val imageLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
@@ -126,11 +111,16 @@ fun AddEditNoteScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = {
-                        navController.navigateUp()
+                        if(!viewModel.isNoteSaved()){
+                            dialogState.value = true
+                        }
+                        else{
+                            navController.navigateUp()
+                        }
                     }) {
                         Icon(
                             imageVector = Icons.Filled.ArrowBack,
-                            contentDescription = "Localized description"
+                            contentDescription = "Go back"
                         )
                     }
                 },
@@ -209,6 +199,17 @@ fun AddEditNoteScreen(
     }
 
 
-
+    NoteSaveDialog(
+        title = "Are you sure?",
+        description = "The changes that you made are not saved",
+        isOpened = dialogState.value,
+        onConfirmCallback = {
+            dialogState.value = false
+            navController.navigateUp()
+        },
+        onDismissCallback = {
+            dialogState.value = false
+        }
+    )
 }
 

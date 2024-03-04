@@ -2,14 +2,13 @@ package com.saitejajanjirala.compose_note.presentation.addeditnotes
 
 import android.app.Application
 import android.net.Uri
-import androidx.compose.runtime.MutableState
+import android.util.Log
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.saitejajanjirala.compose_note.domain.models.InvalidNoteException
 import com.saitejajanjirala.compose_note.domain.models.Note
@@ -20,10 +19,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
-import java.util.Collections
-import java.util.Date
 import javax.inject.Inject
-import kotlin.random.Random
 
 @HiltViewModel
 class AddEditNoteViewModel
@@ -64,12 +60,13 @@ class AddEditNoteViewModel
     val noteImagesState: SnapshotStateList<Uri>
         get() = _noteImagesState
 
-
+    var prevNote : Note? = null
 
     fun fetchNoteData(){
         savedStateHandle.get<Int>("note_id")?.let {noteId->
             viewModelScope.launch(Dispatchers.IO) {
                 noteUseCases.getNoteById.invoke(noteId)?.also{note->
+                    prevNote = note
                     currentNoteId = note.noteId
                     _noteImagesState.apply {
                         addAll(note.images)
@@ -113,24 +110,10 @@ class AddEditNoteViewModel
             AddEditNotesEvent.OnSaveNote -> {
                 viewModelScope.launch(Dispatchers.IO) {
                     try{
-                        val im = noteImagesState
-                        val note = Note(
-                            noteId = currentNoteId,
-                            title = noteTitle.value.text,
-                            description = noteDescription.value.text,
-                            timeStamp = System.currentTimeMillis(),
-                        )
-                       val id =  noteUseCases.addNote.invoke(note).toInt()
-                        if(im.isNotEmpty()){
-
-                            noteUseCases.updateNote.invoke(
-                                note.copy(
-                                    noteId = id,
-                                    images =im,
-                                    timeStamp = System.currentTimeMillis()
-                                )
-                            )
-                        }
+                       val note = getCurrentNote()
+                        val id = noteUseCases.addNote.invoke(note).toInt()
+                        currentNoteId = id
+                        prevNote = noteUseCases.getNoteById.invoke(id)
                         _eventFlow.emit(UiEvent.SaveNote)
                     }catch (e : InvalidNoteException){
                         _eventFlow.emit(UiEvent.ShowSnackBar(e.message.toString()))
@@ -161,12 +144,51 @@ class AddEditNoteViewModel
         }
     }
 
+    private fun getCurrentNote() : Note{
+        return  Note(
+            noteId = currentNoteId,
+            title = noteTitle.value.text,
+            images = _noteImagesState,
+            description = noteDescription.value.text,
+            timeStamp = System.currentTimeMillis(),
+        )
+    }
 
+    fun isNoteSaved() : Boolean{
+        val curr = getCurrentNote()
+        val prev = prevNote
+        if(prev!=null){
+            return  curr.noteId==prev.noteId && compareURIs(curr.images,prev.images) &&
+                    curr.title == prev.title && prev.description == curr.description
+        }
+        return currentNoteId != null
+    }
+    fun compareURIs(list1: List<Uri>, list2: List<Uri>): Boolean {
+
+        if (list1.size != list2.size) {
+            return false
+        }
+
+        // Check each URI
+        for (uri in list1) {
+            if (uri !in list2) {
+                return false
+            }
+        }
+
+        for (uri in list2) {
+            if (uri !in list1) {
+                return false
+            }
+        }
+
+        return true
+    }
 
 }
 
 sealed class UiEvent{
     object SaveNote : UiEvent()
     data class ShowSnackBar(val msg : String): UiEvent()
-
+//    object DataNoteSaved : UiEvent()
 }
