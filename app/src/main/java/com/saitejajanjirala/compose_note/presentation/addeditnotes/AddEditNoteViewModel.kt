@@ -163,7 +163,7 @@ class AddEditNoteViewModel
         }
         return currentNoteId != null
     }
-    fun compareURIs(list1: List<Uri>, list2: List<Uri>): Boolean {
+    private fun compareURIs(list1: List<Uri>, list2: List<Uri>): Boolean {
 
         if (list1.size != list2.size) {
             return false
