@@ -7,11 +7,11 @@ Compose-Note is a simple note-taking app built with Jetpack Compose UI Toolkit. 
 
 - **Single Activity Design**: Experience a seamless navigation flow with a single activity architecture.
 - **Offline Capability**: Take notes anytime, anywhere, with offline support for uninterrupted productivity. ✈️
-- **Clean and Simple Material UI**: Enjoy a clutter-free interface designed following Material Design guidelines. 🎨
-- **Back/Restore Feature**: Safeguard your data with the ability to backup and restore your notes. 👀
+- **Simple Material UI**: Enjoy a clutter-free interface designed following Material Design guidelines. 🎨
+- **Add Images to your notes**: Add and Delete images as you wish in your own notes. 🖼️
+- **Restore Feature**: Safeguard your data with the ability to backup and restore your notes. 👀
 - **Jetpack Compose UI**: Experience the latest in UI development with Jetpack Compose. 🖌
 - **Switch Between Layouts**: Customize your note-taking experience by switching between different layouts. 🌟
-- **Add Images to your notes**: Add and Delete images as you wish in your own notes. 🖼️
 
 ## Built With 🛠
 
