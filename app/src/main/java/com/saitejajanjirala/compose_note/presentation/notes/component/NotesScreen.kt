@@ -31,10 +31,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -45,6 +50,8 @@ import androidx.navigation.NavHostController
 import com.saitejajanjirala.compose_note.presentation.MainViewModel
 import com.saitejajanjirala.compose_note.presentation.notes.NotesEvent
 import com.saitejajanjirala.compose_note.presentation.util.Screen
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -54,7 +61,14 @@ fun NotesScreen(
     viewModel : MainViewModel = hiltViewModel()
 ) {
     val state = viewModel.notesState.value
+    val coroutineScope = rememberCoroutineScope()
+    val snackBarHostState = remember{
+        SnackbarHostState()
+    }
     Scaffold(
+        snackbarHost = {
+            SnackbarHost(hostState = snackBarHostState)
+        },
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -114,17 +128,25 @@ fun NotesScreen(
                         note = note,
                         onDeleteClick ={deleteNote->
                             viewModel.onEvent(NotesEvent.DeleteNote(deleteNote))
+                            coroutineScope.launch {
+                               val result =  snackBarHostState.showSnackbar(
+                                    message = "Your note has been Deleted",
+                                    actionLabel = "Undo"
+                                )
+                                if(result==SnackbarResult.ActionPerformed){
+                                    viewModel.onEvent(NotesEvent.RestoreNoteEvent)
+                                }
+                            }
                         },
                         modifier = Modifier
                             .background(
-                                Color.LightGray,
+                                MaterialTheme.colorScheme.surfaceVariant,
                                 RoundedCornerShape(8.dp)
                             )
                             .clip(RoundedCornerShape(8.dp))
                             .clickable {
 
-                                navController.
-                                    navigate(Screen.AddEditNoteScreen.route + "?note_id=${note.noteId}")
+                                navController.navigate(Screen.AddEditNoteScreen.route + "?note_id=${note.noteId}")
 
                             }
                     )

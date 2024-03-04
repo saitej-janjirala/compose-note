@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.saitejajanjirala.compose_note.domain.models.ImageModel
+import com.saitejajanjirala.compose_note.domain.models.Note
 import com.saitejajanjirala.compose_note.domain.usecases.noteusecase.NoteUseCases
 import com.saitejajanjirala.compose_note.domain.util.NoteOrder
 import com.saitejajanjirala.compose_note.domain.util.OrderType
@@ -37,6 +38,8 @@ class MainViewModel @Inject constructor(
         fetchNotesByOrderType(NoteOrder.Date(OrderType.DESCENDING))
     }
 
+    var recentlyDeletedNote : Note? = null
+
     private fun fetchNotesByOrderType(noteOrder: NoteOrder){
         notesJob?.cancel()
         notesJob =  noteUseCases.getAllNotes.invoke(noteOrder).onEach {
@@ -51,7 +54,9 @@ class MainViewModel @Inject constructor(
         when(notesEvent){
             is NotesEvent.DeleteNote -> {
                 viewModelScope.launch(Dispatchers.IO) {
-                    noteUseCases.deleteNote.invoke(notesEvent.note)
+                    val n = notesEvent.note
+                    noteUseCases.deleteNote.invoke(n)
+                    recentlyDeletedNote =n
                 }
             }
             is NotesEvent.OrderEvent -> {
@@ -63,7 +68,13 @@ class MainViewModel @Inject constructor(
                 fetchNotesByOrderType(notesEvent.noteOrder)
             }
             NotesEvent.RestoreNoteEvent ->{
+                if(recentlyDeletedNote!=null) {
+                    viewModelScope.launch(Dispatchers.IO){
+                        noteUseCases.addNote.invoke(recentlyDeletedNote!!)
+                        recentlyDeletedNote = null
+                    }
 
+                }
             }
             NotesEvent.ToggleOrderSelection -> {
                 _notesState.value = notesState.value.copy(
