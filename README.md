@@ -1,6 +1,7 @@
 # Compose-Note 📝
 
-Compose-Note is a modern note-taking application designed with simplicity and functionality in mind. It leverages Jetpack Compose UI Toolkit to provide a clean and intuitive user interface. Whether you're jotting down quick ideas or organizing your thoughts, Compose-Note has got you covered.
+Compose-Note is a simple note-taking app built with Jetpack Compose UI Toolkit. It offers an easy-to-use interface for capturing your thoughts, ideas, and memories. With features to add images, titles, and descriptions, Compose-Note keeps note-taking straightforward and efficient.
+
 
 ## Features ✨
 
